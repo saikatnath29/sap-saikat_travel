@@ -1,0 +1,53 @@
+CLASS lhc_ZI_TRAVEL_SAIK_M DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+
+    METHODS get_instance_authorizations FOR INSTANCE AUTHORIZATION
+      IMPORTING keys REQUEST requested_authorizations FOR zi_travel_saik_m RESULT result.
+    METHODS earlynumbering_create FOR NUMBERING
+      IMPORTING entities FOR CREATE zi_travel_saik_m.
+
+ENDCLASS.
+
+CLASS lhc_ZI_TRAVEL_SAIK_M IMPLEMENTATION.
+
+  METHOD get_instance_authorizations.
+  ENDMETHOD.
+
+  METHOD earlynumbering_create.
+    DATA(lt_entities) = entities.
+    DELETE lt_entities WHERE TravelId IS NOT INITIAL.
+    TRY.
+        cl_numberrange_runtime=>number_get(
+          EXPORTING
+*      ignore_buffer     =
+            nr_range_nr       = '10'
+            object            = '/DMO/TRV_M'
+           quantity          = CONV #( lines( lt_entities ) )
+*      subobject         =
+*      toyear            =
+          IMPORTING
+            number            = DATA(lv_latest_num)
+            returncode        = DATA(lv_code)
+            returned_quantity = DATA(lv_qty)
+        ).
+      CATCH cx_nr_object_not_found.
+      CATCH cx_number_ranges.
+    ENDTRY.
+    ASSERT lv_qty = lines( lt_entities ).
+    DATA(lv_current_num) = lv_latest_num - lv_qty.
+
+*    DATA: lt_travel_saik_m TYPE TABLE FOR MAPPED EARLY zi_travel_saik_m,
+*          ls_travel_saik_m LIKE LINE OF lt_travel_saik_m.
+    LOOP AT lt_entities INTO DATA(ls_entities).
+      lv_current_num = lv_current_num + 1.
+*    ls_travel_saik_m = VALUE #( %cid = ls_entities-%cid
+*                                TravelId = ls_entities-TravelId ).
+      APPEND VALUE #( %cid = ls_entities-%cid
+                                  TravelId = lv_current_num ) TO
+                                  mapped-zi_travel_saik_m.
+*    APPEND ls_travel_saik_m TO mapped-zi_travel_saik_m.
+*    ENDLOOP.
+
+    ENDMETHOD.
+
+ENDCLASS.
